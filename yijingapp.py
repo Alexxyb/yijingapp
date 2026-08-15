@@ -4,17 +4,28 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.font_manager as fm
 import io
+import os
 import requests
 
 # ==================== 中文字体动态检测 ====================
+# ==================== 中文字体加载（使用项目内字体文件） ====================
 def get_chinese_font():
-    """尝试找到系统中可用的中文字体"""
-    fonts = [f.name for f in fm.fontManager.ttflist]
-    for font in ['Noto Sans CJK SC', 'WenQuanYi Micro Hei', 'SimHei', 'Arial Unicode MS']:
-        if font in fonts:
-            return font
-    return 'DejaVu Sans'  # 备选
+    """加载项目 fonts 目录下的中文字体文件"""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    font_path = os.path.join(base_dir, 'fonts', 'chinesefont.otf')
+    if os.path.exists(font_path):
+        fm.fontManager.addfont(font_path)
+        prop = fm.FontProperties(fname=font_path)
+        return prop.get_name()
+    else:
+        # 备选：尝试系统字体
+        fonts = [f.name for f in fm.fontManager.ttflist]
+        for font in ['Noto Sans CJK SC', 'WenQuanYi Micro Hei', 'SimHei', 'Arial Unicode MS']:
+            if font in fonts:
+                return font
+        return 'DejaVu Sans'
 
+# 设置全局中文字体
 plt.rcParams['font.sans-serif'] = [get_chinese_font()]
 plt.rcParams['axes.unicode_minus'] = False
 
