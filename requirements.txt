@@ -1,7 +1,5 @@
 streamlit
-random
 matplotlib.pyplot
 matplotlib.patches
 matplotlib.font_manager
-io
-requests
+requests
