@@ -7,7 +7,6 @@ import io
 import os
 import requests
 
-# ==================== 中文字体动态检测 ====================
 # ==================== 中文字体加载（使用项目内字体文件） ====================
 def get_chinese_font():
     """加载项目 fonts 目录下的中文字体文件"""
@@ -37,7 +36,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ==================== 移动端 CSS 样式 ====================
+# ==================== 移动端 CSS 样式（优化版） ====================
 st.markdown("""
 <style>
     /* 按钮全宽，易点击 */
@@ -46,24 +45,33 @@ st.markdown("""
         font-size: 18px;
         padding: 12px;
         border-radius: 8px;
-        margin: 5px 0;
+        margin: 15px 0 8px 0;  /* 上边距加大，下边距适中 */
     }
     /* 输入框字体 */
     .stTextArea textarea, .stTextInput input {
         font-size: 16px;
     }
-    /* 标题间距紧凑 */
+    /* 标题间距 */
     h3, h4 {
-        margin-top: 0.5rem !important;
+        margin-top: 0.8rem !important;
         margin-bottom: 0.5rem !important;
+    }
+    /* 段落间距调整 */
+    p {
+        margin: 0.5rem 0 !important;
     }
     /* 移动端边距调整 */
     @media (max-width: 768px) {
         .block-container {
-            padding-top: 1rem;
-            padding-bottom: 1rem;
-            padding-left: 0.5rem;
-            padding-right: 0.5rem;
+            padding-top: 2rem !important;   /* 增大顶部内边距，让标题完全显示 */
+            padding-bottom: 1rem !important;
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+        }
+        /* 按钮在手机上更大一点 */
+        .stButton > button {
+            font-size: 20px;
+            padding: 14px;
         }
     }
 </style>
@@ -423,7 +431,8 @@ if "app_phase" not in st.session_state:
 phase = st.session_state.app_phase
 
 # ==================== 紧凑布局标题 ====================
-st.markdown("<h3 style='margin-bottom:0;'>🌿 周易蓍草占筮 · 古法亲手推演</h3>", unsafe_allow_html=True)
+# 优化标题：增加上边距，防止被遮挡
+st.markdown("<h3 style='margin-top: 0.5rem; margin-bottom:0;'>🌿 周易蓍草占筮 · 古法亲手推演</h3>", unsafe_allow_html=True)
 
 # 顶部提醒（仅在问题提交后显示）
 if phase not in ["preparation", "question"]:
