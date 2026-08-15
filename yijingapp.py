@@ -39,13 +39,15 @@ st.set_page_config(
 # ==================== 移动端 CSS 样式（优化版） ====================
 st.markdown("""
 <style>
-    /* 按钮全宽，易点击 */
+    /* 按钮全宽，左右对齐绘图区 */
     .stButton > button {
         width: 100%;
         font-size: 18px;
         padding: 12px;
         border-radius: 8px;
-        margin: 15px 0 8px 0;  /* 上边距加大，下边距适中 */
+        margin: 15px 0 8px 0;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
     }
     /* 输入框字体 */
     .stTextArea textarea, .stTextInput input {
@@ -63,12 +65,11 @@ st.markdown("""
     /* 移动端边距调整 */
     @media (max-width: 768px) {
         .block-container {
-            padding-top: 2rem !important;   /* 增大顶部内边距，让标题完全显示 */
+            padding-top: 2rem !important;
             padding-bottom: 1rem !important;
             padding-left: 0.5rem !important;
             padding-right: 0.5rem !important;
         }
-        /* 按钮在手机上更大一点 */
         .stButton > button {
             font-size: 20px;
             padding: 14px;
@@ -78,7 +79,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==================== 64卦完整数据库 ====================
-# 键为六爻阴阳标记（自下而上，1=阳，0=阴），值为（卦名，卦辞）
 HEXAGRAM_DATA = {
     "111111": ("乾为天", "元亨利贞。"),
     "000000": ("坤为地", "元亨，利牝马之贞。"),
@@ -155,10 +155,7 @@ def show_fig(fig):
     st.image(buf, use_container_width=True)
 
 def draw_initial_bunch(total=50, highlight_index=None, title_text='已为您备好50根蓍草'):
-    """整齐排列50根蓍草：5排，每排10根，水平间距0.8，垂直间距1.5
-       highlight_index: 若提供，则该索引的蓍草绘制为红色（太极）
-       title_text: 图片顶部显示的文字
-    """
+    """整齐排列50根蓍草：5排，每排10根，水平间距0.8，垂直间距1.5"""
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.set_xlim(0, 10)
     ax.set_ylim(0, 9)
@@ -183,67 +180,88 @@ def draw_initial_bunch(total=50, highlight_index=None, title_text='已为您备�
 
 def draw_state(yao_index, change_index, total_sticks, left, right, left_rem, right_rem,
                hand_person, hand_rem, taiji_collected, show_left_groups=False, show_right_groups=False):
-    """绘制推演状态图：行距1.2，蓍草下移1单位，距边框大于0.5
-       太极与归奇画框水平居中，当前蓍草数文字水平居中
-       人（左手）画框位于天（左堆）下方，与太极与归奇画框对齐
-       人区域蓍草排布：第一根距上边框0.5倍蓍草长度，距左边框0.5倍蓍草长度，
-       其余蓍草与天、地堆间距一致，行距1.2（蓍草长度1 + 间距0.2）
+    """
+    绘制推演状态图（优化版：框宽增加50%，字体增大1.5倍，蓍草线宽加倍）
     """
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.set_xlim(0, 18)
     ax.set_ylim(0, 9)
     ax.axis('off')
 
-    # 区域边框（天、地）
-    ax.add_patch(patches.Rectangle((0.5, 4.5), 5.5, 3.0, fill=False, edgecolor='black', lw=2))
-    ax.text(3.25, 7.8, '天（左堆）', fontsize=14, ha='center', weight='bold')
-    ax.add_patch(patches.Rectangle((7.5, 4.5), 5.5, 3.0, fill=False, edgecolor='black', lw=2))
-    ax.text(10.25, 7.8, '地（右堆）', fontsize=14, ha='center', weight='bold')
+    # 重新计算框的尺寸（横向增加50%）
+    # 天、地框：原来宽5.5，现在宽8.25，间距1.5保持不变
+    left_box_x = 0.0
+    left_box_w = 8.25
+    right_box_x = left_box_x + left_box_w + 1.5  # 9.75
+    right_box_w = 8.25
+    box_h = 3.0
+    box_y = 4.5
 
-    # 人（左手）画框
-    ax.add_patch(patches.Rectangle((2.5, 1.0), 3.0, 2.5, fill=False, edgecolor='black', lw=2))
-    ax.text(4.0, 3.8, '人（左手）', fontsize=14, ha='center', weight='bold')
+    # 人、太极归奇框：居中放置，总宽度 = 4.5 + 10.5 = 15，居中于18，左右边距1.5
+    person_w = 4.5
+    taiji_w = 10.5
+    total_lower_w = person_w + taiji_w  # 15
+    lower_start_x = (18 - total_lower_w) / 2  # 1.5
+    person_x = lower_start_x
+    taiji_x = person_x + person_w
+    lower_h = 2.5
+    lower_y = 1.0
 
-    # 太极与归奇画框
-    rect_x = 5.5
-    rect_width = 7.0
-    ax.add_patch(patches.Rectangle((rect_x, 1.0), rect_width, 2.5, fill=False, edgecolor='black', lw=2))
-    ax.text(rect_x + rect_width/2, 3.8, '太极与归奇', fontsize=14, ha='center', weight='bold')
+    # ---- 绘制四个框 ----
+    # 天
+    ax.add_patch(patches.Rectangle((left_box_x, box_y), left_box_w, box_h,
+                                   fill=False, edgecolor='black', lw=2))
+    ax.text(left_box_x + left_box_w/2, box_y + box_h - 0.2, '天（左堆）',
+            fontsize=21, ha='center', weight='bold')
+    # 地
+    ax.add_patch(patches.Rectangle((right_box_x, box_y), right_box_w, box_h,
+                                   fill=False, edgecolor='black', lw=2))
+    ax.text(right_box_x + right_box_w/2, box_y + box_h - 0.2, '地（右堆）',
+            fontsize=21, ha='center', weight='bold')
 
-    # 太极单根
-    tai_ji_x = rect_x + 1.0
-    ax.plot([tai_ji_x, tai_ji_x], [1.5, 2.8], color='red', linewidth=4, solid_capstyle='butt')
-    ax.text(tai_ji_x, 1.2, '太极', fontsize=14, ha='center', color='red')
+    # 人
+    ax.add_patch(patches.Rectangle((person_x, lower_y), person_w, lower_h,
+                                   fill=False, edgecolor='black', lw=2))
+    ax.text(person_x + person_w/2, lower_y + lower_h + 0.3, '人（左手）',
+            fontsize=21, ha='center', weight='bold')
+    # 太极与归奇
+    ax.add_patch(patches.Rectangle((taiji_x, lower_y), taiji_w, lower_h,
+                                   fill=False, edgecolor='black', lw=2))
+    ax.text(taiji_x + taiji_w/2, lower_y + lower_h + 0.3, '太极与归奇',
+            fontsize=21, ha='center', weight='bold')
 
-    # 归奇蓍草
+    # ---- 绘制太极单根 ----
+    tai_ji_x_pos = taiji_x + 1.0
+    ax.plot([tai_ji_x_pos, tai_ji_x_pos], [lower_y + 0.5, lower_y + 1.8],
+            color='red', linewidth=4, solid_capstyle='butt')  # 线宽加倍
+    ax.text(tai_ji_x_pos, lower_y - 0.2, '太极', fontsize=21, ha='center', color='red')
+
+    # ---- 绘制归奇蓍草 ----
     max_cols_taiji = 25
-    gui_qi_start_x = rect_x + 1.5
+    gui_qi_start_x = taiji_x + 0.5
     for i in range(taiji_collected):
         row = i // max_cols_taiji
         col = i % max_cols_taiji
         x = gui_qi_start_x + col * 0.2
-        y = 1.5 + row * 0.6
-        ax.plot([x, x], [y, y+1.0], color='gray', linewidth=2)
+        y = lower_y + 0.5 + row * 0.6
+        ax.plot([x, x], [y, y+1.0], color='gray', linewidth=4)  # 线宽加倍
 
-    # 天、地、人堆统一参数
+    # ---- 绘制天、地、人堆的蓍草 ----
     heap_row_height = 1.2
     heap_x_step = 0.15
-    max_cols_heaps = 30
+    max_cols_heaps = 50  # 增大以容纳更多蓍草
     max_cols_hand = 13
-    left_region_x = 1.0
-    right_region_x = 8.0
-    hand_region_x = 3.0
-    region_y_top = 6.0
-    hand_region_top = 2.0
 
-    # 左堆
+    # 左堆（天）
+    left_region_x = left_box_x + 0.5
+    region_y_top = box_y + box_h - 0.2  # 顶部留白
     for i in range(left):
         row = i // max_cols_heaps
         col = i % max_cols_heaps
         x = left_region_x + col * heap_x_step
         y = region_y_top - row * heap_row_height
         color = 'gold' if left_rem > 0 and i >= left - left_rem else 'forestgreen'
-        ax.plot([x, x], [y, y+1.0], color=color, linewidth=2)
+        ax.plot([x, x], [y, y+1.0], color=color, linewidth=4)  # 线宽加倍
 
     if show_left_groups and left > 0:
         for k in range(4, left, 4):
@@ -254,14 +272,15 @@ def draw_state(yao_index, change_index, total_sticks, left, right, left_rem, rig
             ax.axvline(x=x_line, ymin=(y_line-0.1)/9, ymax=(y_line+1.1)/9,
                        color='gray', linestyle='--', linewidth=1)
 
-    # 右堆
+    # 右堆（地）
+    right_region_x = right_box_x + 0.5
     for i in range(right):
         row = i // max_cols_heaps
         col = i % max_cols_heaps
         x = right_region_x + col * heap_x_step
         y = region_y_top - row * heap_row_height
         color = 'gold' if right_rem > 0 and i >= right - right_rem else 'forestgreen'
-        ax.plot([x, x], [y, y+1.0], color=color, linewidth=2)
+        ax.plot([x, x], [y, y+1.0], color=color, linewidth=4)  # 线宽加倍
 
     if show_right_groups and right > 0:
         for k in range(4, right, 4):
@@ -273,6 +292,8 @@ def draw_state(yao_index, change_index, total_sticks, left, right, left_rem, rig
                        color='gray', linestyle='--', linewidth=1)
 
     # 人（左手）区
+    hand_region_x = person_x + 0.5
+    hand_region_top = lower_y + lower_h - 0.2
     hand_total = hand_person + hand_rem
     for i in range(hand_total):
         row = i // max_cols_hand
@@ -280,11 +301,11 @@ def draw_state(yao_index, change_index, total_sticks, left, right, left_rem, rig
         x = hand_region_x + col * heap_x_step
         y = hand_region_top - row * heap_row_height
         color = 'purple' if i < hand_person else 'darkviolet'
-        ax.plot([x, x], [y, y+1.0], color=color, linewidth=3)
+        ax.plot([x, x], [y, y+1.0], color=color, linewidth=4)  # 线宽加倍
 
-    # 当前参与推演的蓍草根数
-    ax.text(9.0, 0.5, f'当前参与推演的蓍草根数：{total_sticks} 根',
-            fontsize=14, ha='center', bbox=dict(facecolor='white', alpha=0.8))
+    # ---- 当前参与推演的蓍草根数 ----
+    ax.text(9.0, 0.2, f'当前参与推演的蓍草根数：{total_sticks} 根',
+            fontsize=21, ha='center', bbox=dict(facecolor='white', alpha=0.8))
 
     return fig
 
@@ -295,15 +316,13 @@ def draw_yao(yao):
     return "━━━━━" if yao in (7, 9) else "━━ ━━"
 
 def interpret(yao_list):
-    # 本卦：yao_list 0=初爻，5=上爻
     orig_bin = ''.join('1' if y in (7,9) else '0' for y in yao_list)
-    # 变卦：老阳(9)变阴(0)，老阴(6)变阳(1)
     changed_bin = ''.join('1' if y==6 else ('0' if y==9 else '1' if y==7 else '0') for y in yao_list)
     orig = HEXAGRAM_DATA.get(orig_bin, ("未知卦",""))
     changed = HEXAGRAM_DATA.get(changed_bin, ("未知卦",""))
-    pos = [i+1 for i,y in enumerate(yao_list) if y in (6,9)]  # 变爻位置
+    pos = [i+1 for i,y in enumerate(yao_list) if y in (6,9)]
     lines = [draw_yao(y) + (f"  ← 第{i+1}爻变" if y in (6,9) else "") for i,y in enumerate(yao_list)]
-    lines.reverse()  # 变为上爻到初爻，便于打印
+    lines.reverse()
     return "\n".join(lines), orig, changed, pos
 
 # ==================== AI 接口 ====================
@@ -431,10 +450,8 @@ if "app_phase" not in st.session_state:
 phase = st.session_state.app_phase
 
 # ==================== 紧凑布局标题 ====================
-# 优化标题：增加上边距，防止被遮挡
 st.markdown("<h3 style='margin-top: 0.5rem; margin-bottom:0;'>🌿 周易蓍草占筮 · 古法亲手推演</h3>", unsafe_allow_html=True)
 
-# 顶部提醒（仅在问题提交后显示）
 if phase not in ["preparation", "question"]:
     question_display = st.session_state.question.strip() if st.session_state.question.strip() else "（尚未填写）"
     st.markdown(f"<p style='margin-top:0; margin-bottom:0;'><b>🧘 耐心虔诚。心中默念所求之事：{question_display}</b></p>", unsafe_allow_html=True)
@@ -462,7 +479,7 @@ elif phase == "question":
             st.session_state.app_phase = "ready"
             st.rerun()
 
-# 阶段2：准备蓍草（展示50根）
+# 阶段2：准备蓍草
 elif phase == "ready":
     st.subheader("🪷 备蓍")
     st.info(f"心中默念：**{st.session_state.question}**")
@@ -483,7 +500,7 @@ elif phase == "stepA":
         advance_phase()
         st.rerun()
 
-# 阶段4：推演过程（stepB ~ stepI）
+# 阶段4：推演过程
 elif phase in ["stepB","stepC","stepD_group","stepD_rem","stepE_group","stepE_rem","stepF","stepI"]:
     idx = st.session_state.yao_index
     ch = st.session_state.change_index
@@ -508,7 +525,6 @@ elif phase in ["stepB","stepC","stepD_group","stepD_rem","stepE_group","stepE_re
     }
     btn_label, desc = prompts.get(phase, ("继续", ""))
 
-    # 紧凑显示阶段标题和描述
     st.markdown(f"<h3 style='margin-bottom:0;'>⚊ 第{idx+1}爻 · 第{ch}变</h3>", unsafe_allow_html=True)
     st.markdown(f"<p style='margin-top:0; margin-bottom:0;'>{desc}</p>", unsafe_allow_html=True)
 
@@ -517,7 +533,6 @@ elif phase in ["stepB","stepC","stepD_group","stepD_rem","stepE_group","stepE_re
     fig = draw_state(idx, ch, sticks, left, right, lr, rr, hp, hr, taiji, show_l, show_r)
     show_fig(fig)
 
-    # 在“得爻”阶段显示蓍草堆数
     if phase == "stepI":
         groups = sticks // 4
         yao_num = groups
@@ -530,7 +545,6 @@ elif phase in ["stepB","stepC","stepD_group","stepD_rem","stepE_group","stepE_re
         advance_phase()
         st.rerun()
 
-    # 推演过程中实时显示已得之爻（自下而上）
     if len(st.session_state.yao_results) > 0:
         yao_results = st.session_state.yao_results
         lines = []
@@ -539,14 +553,13 @@ elif phase in ["stepB","stepC","stepD_group","stepD_rem","stepE_group","stepE_re
         st.markdown("**已得之爻（自下而上）：**")
         st.markdown("<br>".join(lines), unsafe_allow_html=True)
 
-# 阶段5：结果展示与AI解卦
+# 阶段5：结果展示
 elif phase == "result":
     yao_list = st.session_state.yao_results
     if len(yao_list) < 6:
         st.warning("尚未完成六爻，请返回")
         st.stop()
 
-    # ===== 详细六爻显示（自下而上） =====
     st.markdown("### 📜 推演所得六爻（自下而上）")
     yao_details = []
     for i, y in enumerate(yao_list):
@@ -554,12 +567,10 @@ elif phase == "result":
         yin_yang = "阳" if y in (7,9) else "阴"
         change = "变" if y in (6,9) else "不变"
         yao_details.append(f"**{pos_name}**：{YAO_NAMES[y]}（{yin_yang}，{change}）")
-    # 从上到下显示（上爻在前）
     for line in reversed(yao_details):
         st.markdown(line)
     st.markdown("---")
 
-    # ===== 匹配卦象 =====
     disp, orig, changed, pos = interpret(yao_list)
 
     st.markdown("## 🔮 占卜结果")
