@@ -133,7 +133,7 @@ def show_fig(fig):
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
     buf.seek(0)
-    st.image(buf, use_column_width=True)
+    st.image(buf, use_container_width=True)
 
 def draw_initial_bunch(total=50, highlight_index=None, title_text='已为您备好50根蓍草'):
     """整齐排列50根蓍草：5排，每排10根，水平间距0.8，垂直间距1.5
