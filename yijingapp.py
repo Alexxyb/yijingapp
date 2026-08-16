@@ -27,7 +27,7 @@ plt.rcParams['axes.unicode_minus'] = False
 
 # ==================== 页面配置 ====================
 st.set_page_config(
-    page_title="周易蓍草占筮 · 亲自参与推演",
+    page_title="周易蓍(shī)草占筮 · 亲自参与推演",
     page_icon="🌿",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -47,13 +47,31 @@ with st.sidebar:
 
     st.divider()
     st.subheader("🎛️ 按钮样式自定义")
-    st.caption("调整推演操作按钮（如“分二”“归奇”等）的位置和尺寸")
+    st.caption("调整推演操作按钮的尺寸和外观")
     btn_font_size = st.slider("按钮字体大小 (px)", 14, 24, 18, key="btn_font_size")
     btn_padding_y = st.slider("按钮上下内边距 (px)", 6, 20, 12, key="btn_padding_y")
-    btn_margin_top = st.slider("按钮上外边距 (px)", -80, 30, -40, key="btn_margin_top")
     btn_margin_bottom = st.slider("按钮下外边距 (px)", 0, 20, 8, key="btn_margin_bottom")
     btn_border_radius = st.slider("按钮圆角 (px)", 0, 20, 8, key="btn_border_radius")
     btn_width_factor = st.slider("按钮宽度扩大倍数", 1, 10, 6, key="btn_width_factor")
+
+    st.divider()
+    st.subheader("🎯 各阶段按钮位置独立微调")
+    if "phase_offsets" not in st.session_state:
+        st.session_state.phase_offsets = {
+            "stepB": -20,
+            "stepC": -20,
+            "stepD_group": -20,
+            "stepD_rem": -40,
+            "stepE_group": -20,
+            "stepE_rem": -40,
+            "stepF": -40,
+            "stepI": -20
+        }
+    phase_options = ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "stepE_rem", "stepF", "stepI"]
+    phase_to_adjust = st.selectbox("选择阶段", phase_options)
+    current_offset = st.session_state.phase_offsets.get(phase_to_adjust, -20)
+    new_offset = st.slider("该阶段按钮上偏移 (px)", -100, 100, current_offset)
+    st.session_state.phase_offsets[phase_to_adjust] = new_offset
 
 # ==================== 动态生成基础 CSS ====================
 btn_width_css = f"min(100%, {btn_width_factor * 100}px)"
@@ -62,7 +80,6 @@ st.markdown(f"""
     :root {{
         --btn-font-size: {btn_font_size}px;
         --btn-padding-y: {btn_padding_y}px;
-        --btn-margin-top: {btn_margin_top}px;
         --btn-margin-bottom: {btn_margin_bottom}px;
         --btn-border-radius: {btn_border_radius}px;
         --btn-width: {btn_width_css};
@@ -72,7 +89,7 @@ st.markdown(f"""
         font-size: var(--btn-font-size);
         padding: var(--btn-padding-y) 12px;
         border-radius: var(--btn-border-radius);
-        margin: var(--btn-margin-top) auto var(--btn-margin-bottom) auto;
+        margin: 0 auto var(--btn-margin-bottom) auto;
         margin-left: auto !important;
         margin-right: auto !important;
         background-color: rgba(255, 255, 255, 0.05);
@@ -82,17 +99,21 @@ st.markdown(f"""
         display: flex;
         align-items: center;
         justify-content: center;
+        white-space: pre-wrap;
+        height: auto;
+        overflow: visible;
+        line-height: 2;
+        flex-direction: column;
     }}
     .stButton > button:hover {{
         background-color: rgba(255, 255, 255, 0.25);
         border: 2px solid rgba(0, 0, 0, 0.6);
         color: rgba(0, 0, 0, 1);
     }}
-    .stButton > button::before {{
-        content: "☯";
-        margin-right: 10px;
-        font-size: 1.3em;
-        color: #444;
+    .stButton > button::before,
+    .stButton > button::after {{
+        content: none !important;
+        display: none !important;
     }}
     .stTextArea textarea, .stTextInput input {{
         font-size: 16px;
@@ -200,19 +221,21 @@ def show_fig(fig):
     buf.seek(0)
     st.image(buf, use_container_width=True)
 
-def draw_initial_bunch(total=50, highlight_index=None, title_text='已为您备好50根蓍草'):
+def draw_initial_bunch(total=50, highlight_index=None, title_text='已经为您准备好50根蓍草',
+                       dx=0, dy=0, shift_x=0, shift_y=0):
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, 9)
+    ax.set_xlim(shift_x, 10 + shift_x)
+    ax.set_ylim(shift_y, 9 + shift_y)
     ax.axis('off')
-    ax.text(5, 8.0, title_text, fontsize=22, ha='center', va='bottom')
+    ax.text(5 + dx + shift_x, 7.5 + dy + shift_y, title_text,
+            fontsize=22, ha='center', va='center')
 
     cols_per_row = 20
     rows = 3
     x_step = 0.3
     y_step = 1.5
-    start_x = 1.4
-    start_y = 6.5
+    start_x = 1.4 + shift_x
+    start_y = 6.5 + shift_y
 
     for i in range(total):
         row = i // cols_per_row
@@ -330,7 +353,7 @@ def draw_state(yao_index, change_index, total_sticks, left, right, left_rem, rig
             x_line = left_region_x + col * 0.25 - 0.125
             y_line = region_y_top - row * row_spacing
             ax.axvline(x=x_line, ymin=(y_line - 0.1) / 11.5, ymax=(y_line + 1.1) / 11.5,
-                       color='gray', linestyle='--', linewidth=1)
+                       color='red', linestyle='--', linewidth=1)
 
     right_region_x = right_box_x + margin_side
     for i in range(right):
@@ -356,7 +379,7 @@ def draw_state(yao_index, change_index, total_sticks, left, right, left_rem, rig
             x_line = right_region_x + col * 0.25 - 0.125
             y_line = region_y_top - row * row_spacing
             ax.axvline(x=x_line, ymin=(y_line - 0.1) / 11.5, ymax=(y_line + 1.1) / 11.5,
-                       color='gray', linestyle='--', linewidth=1)
+                       color='red', linestyle='--', linewidth=1)
 
     hand_region_x = person_x + margin_side
     hand_region_top = lower_y + lower_h - margin_top - stick_len
@@ -414,6 +437,8 @@ def advance_phase():
     phase = st.session_state.app_phase
     if phase == "preparation":
         st.session_state.app_phase = "question"
+        st.session_state.all_complete = False
+        st.session_state.show_detailed_result = False
     elif phase == "question":
         st.session_state.app_phase = "ready"
     elif phase == "ready":
@@ -492,7 +517,9 @@ def advance_phase():
             st.session_state.taiji_collected = 0
             st.session_state.app_phase = "stepB"
         else:
-            st.session_state.app_phase = "result"
+            st.session_state.all_complete = True
+            st.session_state.show_detailed_result = False
+            st.session_state.app_phase = "stepI"
 
 # ==================== 主程序 ====================
 if "app_phase" not in st.session_state:
@@ -510,35 +537,65 @@ if "app_phase" not in st.session_state:
     st.session_state.hand_rem = 0
     st.session_state.taiji_collected = 0
     st.session_state.taiji_stick_index = None
+    st.session_state.all_complete = False
+    st.session_state.show_detailed_result = False
 
 phase = st.session_state.app_phase
 
-# ==================== 相位特定 CSS ====================
+# ==================== 相位特定 CSS（推演阶段按钮放大加粗，整体上移1.5倍，右侧框左移5倍） ====================
 if phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "stepE_rem", "stepF", "stepI"]:
     st.markdown("""
     <style>
+        .stButton {
+            height: 100%;
+            display: flex;
+            align-items: stretch;
+        }
         .stButton > button {
-            margin-top: -20px !important;
-            position: relative;
-            width: auto !important;
-            min-width: 260px;
+            height: auto !important;
+            width: var(--btn-width);
+            font-size: 24px !important;
+            font-weight: bold !important;
+            padding: var(--btn-padding-y) 12px;
+            border-radius: var(--btn-border-radius);
+            margin: 0 auto var(--btn-margin-bottom) auto;
             margin-left: auto !important;
             margin-right: auto !important;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(0, 0, 0, 0.3);
+            color: rgba(0, 0, 0, 0.8);
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
+            transform: translate(0px, -70px) !important;
+            white-space: pre-wrap;
+            overflow: visible !important;
+            line-height: 2;
+            flex-direction: column;
         }
+        .stButton > button:hover {
+            background-color: rgba(255, 255, 255, 0.25);
+            border: 2px solid rgba(0, 0, 0, 0.6);
+            color: rgba(0, 0, 0, 1);
+        }
+        .stButton > button::before,
         .stButton > button::after {
-            content: "☯";
-            margin-left: 12px;
-            font-size: 1.4em;
-            color: #333;
+            content: none !important;
+            display: none !important;
+        }
+        .right-content {
+            transform: translate(-140px, -70px);
+        }
+        .complete-content {
+            transform: translate(-140px, -70px);
+            text-align: left;
         }
     </style>
     """, unsafe_allow_html=True)
 
 # ==================== 标题 ====================
-st.markdown("<h3 style='margin-top: 0.5rem; margin-bottom:0;'>🌿 周易蓍草占筮 · 古法亲手推演</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='margin-top: 0.5rem; margin-bottom:0;'>🌿 周易蓍(shī)草占筮 · 古法亲手推演</h3>", unsafe_allow_html=True)
 
 if phase not in ["preparation", "question"]:
     question_display = st.session_state.question.strip() if st.session_state.question.strip() else "（尚未填写）"
@@ -548,9 +605,19 @@ if phase not in ["preparation", "question"]:
 if phase == "preparation":
     st.markdown("## 🪷 仪式准备")
     st.markdown("**请沐浴更衣、洗手静心，虔心端坐，诚心诚意。**")
-    st.markdown("确认已做好身心的准备后，再进入下一步写下心中所问之事。")
+    st.markdown("**请确认已做好身心准备，再进入下一步写下心中所问之事。**")
     st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
-    if st.button("🧘 我已准备好，开始默念所求"):
+    
+    st.markdown("""
+    <style>
+        .stButton > button {
+            font-size: calc(0.75 * var(--btn-font-size)) !important;
+            margin-top: -20px !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    if st.button("☯️ 我已准备好  心中默念所求之事\n☯️ 请虔心点按此处进行下一步"):
         advance_phase()
         st.rerun()
 
@@ -559,7 +626,17 @@ elif phase == "question":
     st.markdown("## 🔮 静心凝神，写下心中所问")
     question = st.text_area("所求之事", placeholder="例如：这次工作是否顺利？")
     st.markdown("<div style='margin-top: 2em;'></div>", unsafe_allow_html=True)
-    if st.button("✨ 心意已定，备蓍起卦"):
+    
+    st.markdown("""
+    <style>
+        .stButton > button {
+            font-size: calc(0.75 * var(--btn-font-size)) !important;
+            margin-top: -20px !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    if st.button("☯️ 心意已定  备蓍起卦\n☯️ 请虔心点按此处进入下一步"):
         if question.strip() == "":
             st.warning("请先填写所求之事。")
         else:
@@ -571,34 +648,41 @@ elif phase == "question":
 elif phase == "ready":
     st.subheader("🪷 备蓍")
     st.info(f"心中默念：**{st.session_state.question}**")
-    fig = draw_initial_bunch(50)
+    fig = draw_initial_bunch(50, title_text='已经为您准备好50根蓍草', dx=-0.5, dy=1.0, shift_x=-3)
     show_fig(fig)
     st.markdown("""
     <style>
         div[data-testid="stButton"] button {
             margin-top: -160px !important;
         }
+        .stButton > button {
+            font-size: calc(0.75 * var(--btn-font-size)) !important;
+        }
     </style>
     """, unsafe_allow_html=True)
-    if st.button("🌱 开始取太极"):
+    if st.button("☯️ 开始取太极\n☯️ 请虔心点按此处进入下一步"):
         advance_phase()
         st.rerun()
 
 # ==================== 阶段3：取太极 ====================
 elif phase == "stepA":
-    st.subheader("☯️ 步骤 A：取太极")
-    st.markdown("请从50根中取出 **1根** 放在桌面前方，代表太极、不易、坚强意志。")
+    st.subheader("☯️ 取太极")
+    st.markdown("**已经为您从50根蓍草中取出1根代表太极、不易、坚强意志。**")
     st.caption("图中红色蓍草为随机选中的太极。")
-    fig = draw_initial_bunch(50, highlight_index=st.session_state.taiji_stick_index, title_text='取太极')
+    fig = draw_initial_bunch(50, highlight_index=st.session_state.taiji_stick_index,
+                             title_text='已为您取太极', dx=-0.5, dy=1.0, shift_x=-3)
     show_fig(fig)
     st.markdown("""
     <style>
         div[data-testid="stButton"] button {
             margin-top: -160px !important;
         }
+        .stButton > button {
+            font-size: calc(0.75 * var(--btn-font-size)) !important;
+        }
     </style>
     """, unsafe_allow_html=True)
-    if st.button("☯️ 我已取太极，意志坚定，开始推演"):
+    if st.button("☯️ 已取太极  意志坚定  开始卜卦\n☯️ 请虔心点按此处进入下一步"):
         advance_phase()
         st.rerun()
 
@@ -614,81 +698,115 @@ elif phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "ste
     hp = st.session_state.hand_person
     hr = st.session_state.hand_rem
     taiji = st.session_state.taiji_collected
+    all_complete = st.session_state.all_complete
+    show_detailed = st.session_state.show_detailed_result
 
-    prompts = {
-        "stepB": ("分二", "将手中蓍草随机分为左右两堆（分天地）"),
-        "stepC": ("挂一", "从右堆（地）中取出1根挂于左手（人）"),
-        "stepD_group": ("揲左", "将左堆4根一组进行分组"),
-        "stepD_rem": ("取余", "左堆分组完毕，请将余数挂于左手"),
-        "stepE_group": ("揲右", "将右堆4根一组进行分组"),
-        "stepE_rem": ("取余", "右堆分组完毕，请将余数挂于左手"),
-        "stepF": ("归奇", "将左手所挂蓍草归置于太极旁"),
-        "stepI": ("得爻", "三次推演完成，请查看天地组数"),
+    # 定义每个阶段的说明文字和操作名
+    phase_info = {
+        "stepB": ("将蓍草随机分为左右两堆（分天地）", "分二"),
+        "stepC": ("从右堆中取出1根挂于左手", "挂一"),
+        "stepD_group": ("将左堆4根一组进行分组", "揲左"),
+        "stepD_rem": ("左堆分组完毕，请将余下蓍草挂于左手", "取余"),
+        "stepE_group": ("将右堆4根一组进行分组", "揲右"),
+        "stepE_rem": ("右堆分组完毕，请将余下蓍草挂于左手", "取余"),
+        "stepF": ("将左手所挂蓍草归置于太极旁", "归奇"),
+        "stepI": ("三次推演完成，请查看得爻结果", "得爻"),
     }
-    btn_label, desc = prompts.get(phase, ("继续", ""))
+
+    # 按钮文本逻辑
+    if all_complete:
+        if show_detailed:
+            btn_label = "☯️ 查看卦象"
+        else:
+            btn_label = "☯️ 完成六爻推演"
+        full_label = btn_label
+    else:
+        desc_text, op_name = phase_info.get(phase, ("", ""))
+        full_label = (
+            f"{desc_text}\n"
+            f"☯️  {op_name}  ☯️\n\n"
+            f"心中默念所求之事\n"
+            f"请虔心点按此框任意位置卜卦"
+        )
 
     st.markdown(f"<h3 style='margin-bottom:0;'>第{idx+1}爻 · 第{ch}变</h3>", unsafe_allow_html=True)
-    st.markdown(f"<p style='margin-top:0; margin-bottom:0;'>{desc}</p>", unsafe_allow_html=True)
 
-    show_l = (phase in ["stepD_group", "stepD_rem"])
-    show_r = (phase in ["stepE_group", "stepE_rem"])
+    show_l = (phase in ["stepD_group", "stepD_rem", "stepI"])
+    show_r = (phase in ["stepE_group", "stepE_rem", "stepI"])
     fig = draw_state(idx, ch, sticks, left, right, lr, rr, hp, hr, taiji, show_l, show_r,
                      show_grid=debug_grid)
     show_fig(fig)
 
-    # ---- 已得之爻：使用纯 Markdown 列表，无任何 div/class 标签 ----
     yao_results = st.session_state.yao_results
     chinese_nums = ["一", "二", "三", "四", "五", "六"]
-    # 反向遍历：最新在上，最旧在下（自下而上）
-    md_lines = []
-    for i in range(len(yao_results)-1, -1, -1):
-        label = f"第{chinese_nums[i]}爻"
-        value = SIMPLE_YAO_NAMES.get(yao_results[i], "未知")
-        md_lines.append(f"- {label}：{value}")
 
-    yao_md = "\n".join(md_lines) if md_lines else "（暂无已得之爻）"
+    phase_offset = st.session_state.phase_offsets.get(phase, -20)
 
-    # ---- 使用两列布局，左侧按钮，右侧显示纯文本 ----
-    col1, col2 = st.columns([1, 1.5], gap="large")
+    col1, col2 = st.columns([1, 1], gap="large")
     with col1:
-        if st.button(btn_label, key=f"btn_{phase}_{idx}_{ch}"):
-            advance_phase()
-            st.rerun()
+        st.markdown(f"<div style='height: {phase_offset}px;'></div>", unsafe_allow_html=True)
+        if st.button(full_label, key=f"btn_{phase}_{idx}_{ch}"):
+            if all_complete:
+                if show_detailed:
+                    st.session_state.app_phase = "result"
+                    st.rerun()
+                else:
+                    st.session_state.show_detailed_result = True
+                    st.rerun()
+            else:
+                advance_phase()
+                st.rerun()
     with col2:
-        st.markdown(yao_md)
+        st.markdown(f"<div style='height: {phase_offset}px;'></div>", unsafe_allow_html=True)
+        # 统一显示已得之爻（按第六→第一的顺序）
+        lines = []
+        for i in range(len(yao_results)-1, -1, -1):
+            label = f"第{chinese_nums[i]}爻"
+            value = SIMPLE_YAO_NAMES.get(yao_results[i], "未知")
+            lines.append(f"{label}：{value}")
+        yao_text = "☯️ 所得之爻<br>" + "<br>".join(lines) if lines else "（暂无已得之爻）"
+        st.markdown(f'''
+        <div class="right-content" style="width: fit-content; margin-left: auto; margin-right: 0; text-align: left; border: 2px solid #555; border-radius: 8px; padding: 8px 12px; min-height: 200px; display: flex; flex-direction: column; justify-content: center;">
+            {yao_text}
+        </div>
+        ''', unsafe_allow_html=True)
 
-# ==================== 阶段5：结果展示 ====================
+    # 得爻详情显示（带方框）- 仅当未完成时显示，左侧对齐人（左手）框
+    if phase == "stepI" and not all_complete:
+        left_groups = left // 4
+        right_groups = right // 4
+        total_groups = left_groups + right_groups
+        yin_yang = "阳" if total_groups % 2 == 1 else "阴"
+        yao_name = SIMPLE_YAO_NAMES.get(total_groups, "未知")
+        st.markdown(f"""
+        <div style='margin-top: 1em; margin-left: 0; margin-right: auto; width: fit-content; text-align: left; transform: translate(0px, -80px); border: 2px solid #555; border-radius: 8px; padding: 12px 16px;'>
+        ☯  得爻：<br>
+        左堆（天）：{left} 根，{left_groups} 组（每组4根）。<br>
+        右堆（地）：{right} 根，{right_groups} 组（每组4根）。<br>
+        组数：{left_groups} + {right_groups} = {total_groups} 。<br>
+        规则：组数为奇（7或9）则阳，偶（6或8）则阴。<br>
+        当前组数 {total_groups}，为 {yin_yang}，所得爻为 {yao_name}。
+        </div>
+        """, unsafe_allow_html=True)
+
+# ==================== 阶段5：占卜结果 ====================
 elif phase == "result":
     yao_list = st.session_state.yao_results
     if len(yao_list) < 6:
         st.warning("尚未完成六爻，请返回")
         st.stop()
 
-    st.markdown("### 📜 推演所得六爻（自下而上）")
-    yao_details = []
-    for i, y in enumerate(yao_list):
-        pos_name = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"][i]
-        yin_yang = "阳" if y in (7, 9) else "阴"
-        change = "变" if y in (6, 9) else "不变"
-        yao_details.append(f"**{pos_name}**：{YAO_NAMES[y]}（{yin_yang}，{change}）")
-    for line in reversed(yao_details):
-        st.markdown(line)
-    st.markdown("---")
-
     disp, orig, changed, pos = interpret(yao_list)
 
-    st.markdown("## 🔮 占卜结果")
-    st.markdown(f"**所问：** {st.session_state.question}")
+    st.markdown("## 🪷 卦象与卦辞")
 
-    st.subheader("本卦")
+    st.markdown(f"**本卦  {orig[0]}**：{orig[1]}")
     st.code(disp, language="")
-    st.markdown(f"**{orig[0]}**：{orig[1]}")
 
     if pos:
-        st.markdown("### 之卦（变卦）")
         changed_lines = [draw_yao(9 if y == 6 else (6 if y == 9 else y)) for y in reversed(yao_list)]
+        st.markdown(f"**变卦  {changed[0]}**：{changed[1]}")
         st.code("\n".join(changed_lines), language="")
-        st.markdown(f"**{changed[0]}**：{changed[1]}")
         st.write(f"变爻位置（自下而上）：第 {', '.join(map(str, pos))} 爻")
         if len(pos) == 1:
             st.info("一爻变，以本卦变爻爻辞为主。")
@@ -700,7 +818,7 @@ elif phase == "result":
     if use_ai and deepseek_key:
         prompt = f"用户问题：{st.session_state.question}\n本卦：{orig[0]}（{orig[1]}）"
         if pos:
-            prompt += f"\n之卦：{changed[0]}（{changed[1]}），变爻：{pos}"
+            prompt += f"\n变卦：{changed[0]}（{changed[1]}），变爻：{pos}"
         prompt += "\n请作为易经专家，用白话给出通俗解读与建议。"
         with st.spinner("DeepSeek 正在解卦..."):
             ai_reply = call_deepseek(prompt, deepseek_key)
@@ -708,7 +826,8 @@ elif phase == "result":
         st.write(ai_reply)
 
     st.markdown("---")
+    st.markdown("☯ **如需详细解卦，请联系博主，微信号码：AlexanderXG**")
     st.markdown(
-        "📌 **如需详细解卦，请联系博主，微信号码：AlexanderXG**  \n"
-        "（解卦之前自愿支付诚意金。）"
+        '<div style="font-size: 2em; line-height: 2; font-weight: bold; text-align: center; margin-top: 20px;">☯️  卦礼随缘  ☯️</div>',
+        unsafe_allow_html=True
     )
