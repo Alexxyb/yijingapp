@@ -7,9 +7,8 @@ import io
 import os
 import requests
 
-# ==================== 中文字体加载（使用项目内字体文件） ====================
+# ==================== 中文字体加载 ====================
 def get_chinese_font():
-    """加载项目 fonts 目录下的中文字体文件"""
     base_dir = os.path.dirname(os.path.abspath(__file__))
     font_path = os.path.join(base_dir, 'fonts', 'chinesefont.otf')
     if os.path.exists(font_path):
@@ -17,68 +16,116 @@ def get_chinese_font():
         prop = fm.FontProperties(fname=font_path)
         return prop.get_name()
     else:
-        # 备选：尝试系统字体
         fonts = [f.name for f in fm.fontManager.ttflist]
         for font in ['Noto Sans CJK SC', 'WenQuanYi Micro Hei', 'SimHei', 'Arial Unicode MS']:
             if font in fonts:
                 return font
         return 'DejaVu Sans'
 
-# 设置全局中文字体
 plt.rcParams['font.sans-serif'] = [get_chinese_font()]
 plt.rcParams['axes.unicode_minus'] = False
 
-# ==================== 页面配置（移动端优化） ====================
+# ==================== 页面配置 ====================
 st.set_page_config(
-    page_title="周易蓍草占筮 · 亲手推演",
+    page_title="周易蓍草占筮 · 亲自参与推演",
     page_icon="🌿",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# ==================== 移动端 CSS 样式（优化版） ====================
-st.markdown("""
+# ==================== 侧边栏 ====================
+with st.sidebar:
+    st.header("🤖 AI 解卦（可选）")
+    use_ai = st.checkbox("启用 AI 白话解卦")
+    deepseek_key = None
+    if use_ai:
+        deepseek_key = st.text_input("DeepSeek API Key", type="password")
+
+    st.divider()
+    st.subheader("🛠️ 布局调试")
+    debug_grid = st.checkbox("显示网格虚线及坐标", value=False)
+
+    st.divider()
+    st.subheader("🎛️ 按钮样式自定义")
+    st.caption("调整推演操作按钮（如“分二”“归奇”等）的位置和尺寸")
+    btn_font_size = st.slider("按钮字体大小 (px)", 14, 24, 18, key="btn_font_size")
+    btn_padding_y = st.slider("按钮上下内边距 (px)", 6, 20, 12, key="btn_padding_y")
+    btn_margin_top = st.slider("按钮上外边距 (px)", -80, 30, -40, key="btn_margin_top")
+    btn_margin_bottom = st.slider("按钮下外边距 (px)", 0, 20, 8, key="btn_margin_bottom")
+    btn_border_radius = st.slider("按钮圆角 (px)", 0, 20, 8, key="btn_border_radius")
+    btn_width_factor = st.slider("按钮宽度扩大倍数", 1, 10, 6, key="btn_width_factor")
+
+# ==================== 动态生成基础 CSS ====================
+btn_width_css = f"min(100%, {btn_width_factor * 100}px)"
+st.markdown(f"""
 <style>
-    /* 按钮全宽，左右对齐绘图区 */
-    .stButton > button {
-        width: 100%;
-        font-size: 18px;
-        padding: 12px;
-        border-radius: 8px;
-        margin: 15px 0 8px 0;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-    }
-    /* 输入框字体 */
-    .stTextArea textarea, .stTextInput input {
+    :root {{
+        --btn-font-size: {btn_font_size}px;
+        --btn-padding-y: {btn_padding_y}px;
+        --btn-margin-top: {btn_margin_top}px;
+        --btn-margin-bottom: {btn_margin_bottom}px;
+        --btn-border-radius: {btn_border_radius}px;
+        --btn-width: {btn_width_css};
+    }}
+    .stButton > button {{
+        width: var(--btn-width);
+        font-size: var(--btn-font-size);
+        padding: var(--btn-padding-y) 12px;
+        border-radius: var(--btn-border-radius);
+        margin: var(--btn-margin-top) auto var(--btn-margin-bottom) auto;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 2px solid rgba(0, 0, 0, 0.3);
+        color: rgba(0, 0, 0, 0.8);
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }}
+    .stButton > button:hover {{
+        background-color: rgba(255, 255, 255, 0.25);
+        border: 2px solid rgba(0, 0, 0, 0.6);
+        color: rgba(0, 0, 0, 1);
+    }}
+    .stButton > button::before {{
+        content: "☯";
+        margin-right: 10px;
+        font-size: 1.3em;
+        color: #444;
+    }}
+    .stTextArea textarea, .stTextInput input {{
         font-size: 16px;
-    }
-    /* 标题间距 */
-    h3, h4 {
+    }}
+    h3, h4 {{
         margin-top: 0.8rem !important;
         margin-bottom: 0.5rem !important;
-    }
-    /* 段落间距调整 */
-    p {
+    }}
+    p {{
         margin: 0.5rem 0 !important;
-    }
-    /* 移动端边距调整 */
-    @media (max-width: 768px) {
-        .block-container {
+    }}
+    @media (max-width: 768px) {{
+        :root {{
+            --btn-font-size: {max(20, btn_font_size)}px;
+            --btn-padding-y: {max(14, btn_padding_y)}px;
+            --btn-width: 100%;
+        }}
+        .block-container {{
             padding-top: 2rem !important;
             padding-bottom: 1rem !important;
             padding-left: 0.5rem !important;
             padding-right: 0.5rem !important;
-        }
-        .stButton > button {
-            font-size: 20px;
-            padding: 14px;
-        }
-    }
+        }}
+        .stButton > button {{
+            font-size: var(--btn-font-size);
+            padding: var(--btn-padding-y) 12px;
+            width: 100%;
+        }}
+    }}
 </style>
 """, unsafe_allow_html=True)
 
-# ==================== 64卦完整数据库 ====================
+# ==================== 64卦数据库 ====================
 HEXAGRAM_DATA = {
     "111111": ("乾为天", "元亨利贞。"),
     "000000": ("坤为地", "元亨，利牝马之贞。"),
@@ -148,23 +195,21 @@ HEXAGRAM_DATA = {
 
 # ==================== 绘图函数 ====================
 def show_fig(fig):
-    """将 Matplotlib 图转为 PNG 并显示，自适应宽度"""
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
     buf.seek(0)
     st.image(buf, use_container_width=True)
 
 def draw_initial_bunch(total=50, highlight_index=None, title_text='已为您备好50根蓍草'):
-    """整齐排列50根蓍草：5排，每排10根，水平间距0.8，垂直间距1.5"""
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.set_xlim(0, 10)
     ax.set_ylim(0, 9)
     ax.axis('off')
-    ax.text(5, 8.0, title_text, fontsize=14, ha='center', va='bottom')
+    ax.text(5, 8.0, title_text, fontsize=22, ha='center', va='bottom')
 
-    cols_per_row = 10
-    rows = 5
-    x_step = 0.8
+    cols_per_row = 20
+    rows = 3
+    x_step = 0.3
     y_step = 1.5
     start_x = 1.4
     start_y = 6.5
@@ -175,153 +220,178 @@ def draw_initial_bunch(total=50, highlight_index=None, title_text='已为您备�
         x = start_x + col * x_step
         y = start_y - row * y_step
         color = 'red' if (highlight_index is not None and i == highlight_index) else 'forestgreen'
-        ax.plot([x, x], [y, y+1], color=color, linewidth=2)
+        ax.plot([x, x], [y, y+1], color=color, linewidth=5)
     return fig
 
 def draw_state(yao_index, change_index, total_sticks, left, right, left_rem, right_rem,
-               hand_person, hand_rem, taiji_collected, show_left_groups=False, show_right_groups=False):
-    """
-    绘制推演状态图（优化版：框宽增加50%，字体增大1.5倍，蓍草线宽加倍）
-    """
-    fig, ax = plt.subplots(figsize=(12, 6))
+               hand_person, hand_rem, taiji_collected, show_left_groups=False, show_right_groups=False,
+               show_grid=False):
+    stick_len = 1.0
+    margin_side = 0.3 * stick_len
+    margin_top = 0.3 * stick_len
+    row_spacing = stick_len + 0.3 * stick_len
+    text_bottom_offset = 0.2 * stick_len
+
+    fig, ax = plt.subplots(figsize=(12, 7))
     ax.set_xlim(0, 18)
-    ax.set_ylim(0, 9)
-    ax.axis('off')
+    ax.set_ylim(0, 11.5)
 
-    # 重新计算框的尺寸（横向增加50%）
-    # 天、地框：原来宽5.5，现在宽8.25，间距1.5保持不变
-    left_box_x = 0.0
-    left_box_w = 8.25
-    right_box_x = left_box_x + left_box_w + 1.5  # 9.75
-    right_box_w = 8.25
+    if show_grid:
+        ax.set_xticks(range(0, 19, 1))
+        ax.set_yticks(range(0, 12, 1))
+        ax.grid(True, linestyle='--', alpha=0.6, linewidth=0.5)
+        ax.tick_params(labelsize=8)
+        ax.set_xlabel('X 坐标', fontsize=10)
+        ax.set_ylabel('Y 坐标', fontsize=10)
+        ax.set_axisbelow(True)
+    else:
+        ax.axis('off')
+
+    box_y = 6.0
     box_h = 3.0
-    box_y = 4.5
-
-    # 人、太极归奇框：居中放置，总宽度 = 4.5 + 10.5 = 15，居中于18，左右边距1.5
-    person_w = 4.5
-    taiji_w = 10.5
-    total_lower_w = person_w + taiji_w  # 15
-    lower_start_x = (18 - total_lower_w) / 2  # 1.5
-    person_x = lower_start_x
-    taiji_x = person_x + person_w
+    label_y_top = 9.3
+    lower_y = 2.0
     lower_h = 2.5
-    lower_y = 1.0
+    gap = 1.0
 
-    # ---- 绘制四个框 ----
-    # 天
-    ax.add_patch(patches.Rectangle((left_box_x, box_y), left_box_w, box_h,
-                                   fill=False, edgecolor='black', lw=2))
-    ax.text(left_box_x + left_box_w/2, box_y + box_h - 0.2, '天（左堆）',
-            fontsize=21, ha='center', weight='bold')
-    # 地
-    ax.add_patch(patches.Rectangle((right_box_x, box_y), right_box_w, box_h,
-                                   fill=False, edgecolor='black', lw=2))
-    ax.text(right_box_x + right_box_w/2, box_y + box_h - 0.2, '地（右堆）',
-            fontsize=21, ha='center', weight='bold')
+    left_box_w = 7.5
+    right_box_w = 7.5
+    person_w = 4.5
 
-    # 人
-    ax.add_patch(patches.Rectangle((person_x, lower_y), person_w, lower_h,
-                                   fill=False, edgecolor='black', lw=2))
-    ax.text(person_x + person_w/2, lower_y + lower_h + 0.3, '人（左手）',
-            fontsize=21, ha='center', weight='bold')
-    # 太极与归奇
-    ax.add_patch(patches.Rectangle((taiji_x, lower_y), taiji_w, lower_h,
-                                   fill=False, edgecolor='black', lw=2))
-    ax.text(taiji_x + taiji_w/2, lower_y + lower_h + 0.3, '太极与归奇',
-            fontsize=21, ha='center', weight='bold')
+    left_box_x = 0.0
+    right_box_x = left_box_x + left_box_w + 1.5
 
-    # ---- 绘制太极单根 ----
-    tai_ji_x_pos = taiji_x + 1.0
-    ax.plot([tai_ji_x_pos, tai_ji_x_pos], [lower_y + 0.5, lower_y + 1.8],
-            color='red', linewidth=4, solid_capstyle='butt')  # 线宽加倍
-    ax.text(tai_ji_x_pos, lower_y - 0.2, '太极', fontsize=21, ha='center', color='red')
+    person_x = left_box_x
+    taiji_w = (right_box_x + right_box_w) - (person_x + person_w + gap)
+    taiji_x = person_x + person_w + gap
 
-    # ---- 绘制归奇蓍草 ----
+    ax.add_patch(patches.Rectangle((left_box_x, box_y), left_box_w, box_h, fill=False, edgecolor='black', lw=2))
+    ax.text(left_box_x + left_box_w/2, label_y_top, '天（左堆）', fontsize=21, ha='center', weight='bold')
+
+    ax.add_patch(patches.Rectangle((right_box_x, box_y), right_box_w, box_h, fill=False, edgecolor='black', lw=2))
+    ax.text(right_box_x + right_box_w/2, label_y_top, '地（右堆）', fontsize=21, ha='center', weight='bold')
+
+    ax.add_patch(patches.Rectangle((person_x, lower_y), person_w, lower_h, fill=False, edgecolor='black', lw=2))
+    ax.text(person_x + person_w/2, lower_y + lower_h + 0.3, '人（左手）', fontsize=21, ha='center', weight='bold')
+
+    ax.add_patch(patches.Rectangle((taiji_x, lower_y), taiji_w, lower_h, fill=False, edgecolor='black', lw=2))
+    ax.text(taiji_x + taiji_w/2, lower_y + lower_h + 0.3, '太极与归奇', fontsize=21, ha='center', weight='bold')
+
+    info_y = 10.8
+    ax.text(9.0, info_y, f'当前参与推演的蓍草根数：{total_sticks} 根',
+            fontsize=21, ha='center', bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'))
+
+    tai_ji_x_pos = taiji_x + 0.8
+    text_bottom = lower_y + text_bottom_offset
+    text_height = 0.4
+    text_top = text_bottom + text_height
+    tai_ji_bottom = text_top + 0.3 * stick_len
+    tai_ji_top = tai_ji_bottom + stick_len
+    ax.plot([tai_ji_x_pos, tai_ji_x_pos], [tai_ji_bottom, tai_ji_top],
+            color='red', linewidth=4, solid_capstyle='butt')
+    ax.text(tai_ji_x_pos, text_bottom, '太极',
+            fontsize=21, ha='center', va='bottom', color='red')
+
     max_cols_taiji = 25
-    gui_qi_start_x = taiji_x + 0.5
+    gui_qi_start_x = tai_ji_x_pos + 0.8
+    taiji_x_step = 0.35
+    taiji_row_spacing = row_spacing
+    first_row_bottom_taiji = tai_ji_bottom
     for i in range(taiji_collected):
         row = i // max_cols_taiji
         col = i % max_cols_taiji
-        x = gui_qi_start_x + col * 0.2
-        y = lower_y + 0.5 + row * 0.6
-        ax.plot([x, x], [y, y+1.0], color='gray', linewidth=4)  # 线宽加倍
+        x = gui_qi_start_x + col * taiji_x_step
+        y = first_row_bottom_taiji - row * taiji_row_spacing
+        ax.plot([x, x], [y, y + stick_len], color='gray', linewidth=4)
 
-    # ---- 绘制天、地、人堆的蓍草 ----
-    heap_row_height = 1.2
-    heap_x_step = 0.15
-    max_cols_heaps = 50  # 增大以容纳更多蓍草
-    max_cols_hand = 13
-
-    # 左堆（天）
-    left_region_x = left_box_x + 0.5
-    region_y_top = box_y + box_h - 0.2  # 顶部留白
+    left_region_x = left_box_x + margin_side
+    region_y_top = box_y + box_h - margin_top - stick_len
+    max_cols_per_row = 24
     for i in range(left):
-        row = i // max_cols_heaps
-        col = i % max_cols_heaps
-        x = left_region_x + col * heap_x_step
-        y = region_y_top - row * heap_row_height
+        if i < max_cols_per_row:
+            row = 0
+            col = i
+        else:
+            row = 1
+            col = i - max_cols_per_row
+        x = left_region_x + col * 0.25
+        y = region_y_top - row * row_spacing
         color = 'gold' if left_rem > 0 and i >= left - left_rem else 'forestgreen'
-        ax.plot([x, x], [y, y+1.0], color=color, linewidth=4)  # 线宽加倍
+        ax.plot([x, x], [y, y + stick_len], color=color, linewidth=4)
 
     if show_left_groups and left > 0:
         for k in range(4, left, 4):
-            row = k // max_cols_heaps
-            col = k % max_cols_heaps
-            x_line = left_region_x + col * heap_x_step - heap_x_step/2
-            y_line = region_y_top - row * heap_row_height
-            ax.axvline(x=x_line, ymin=(y_line-0.1)/9, ymax=(y_line+1.1)/9,
+            if k < max_cols_per_row:
+                row = 0
+                col = k
+            else:
+                row = 1
+                col = k - max_cols_per_row
+            x_line = left_region_x + col * 0.25 - 0.125
+            y_line = region_y_top - row * row_spacing
+            ax.axvline(x=x_line, ymin=(y_line - 0.1) / 11.5, ymax=(y_line + 1.1) / 11.5,
                        color='gray', linestyle='--', linewidth=1)
 
-    # 右堆（地）
-    right_region_x = right_box_x + 0.5
+    right_region_x = right_box_x + margin_side
     for i in range(right):
-        row = i // max_cols_heaps
-        col = i % max_cols_heaps
-        x = right_region_x + col * heap_x_step
-        y = region_y_top - row * heap_row_height
+        if i < max_cols_per_row:
+            row = 0
+            col = i
+        else:
+            row = 1
+            col = i - max_cols_per_row
+        x = right_region_x + col * 0.25
+        y = region_y_top - row * row_spacing
         color = 'gold' if right_rem > 0 and i >= right - right_rem else 'forestgreen'
-        ax.plot([x, x], [y, y+1.0], color=color, linewidth=4)  # 线宽加倍
+        ax.plot([x, x], [y, y + stick_len], color=color, linewidth=4)
 
     if show_right_groups and right > 0:
         for k in range(4, right, 4):
-            row = k // max_cols_heaps
-            col = k % max_cols_heaps
-            x_line = right_region_x + col * heap_x_step - heap_x_step/2
-            y_line = region_y_top - row * heap_row_height
-            ax.axvline(x=x_line, ymin=(y_line-0.1)/9, ymax=(y_line+1.1)/9,
+            if k < max_cols_per_row:
+                row = 0
+                col = k
+            else:
+                row = 1
+                col = k - max_cols_per_row
+            x_line = right_region_x + col * 0.25 - 0.125
+            y_line = region_y_top - row * row_spacing
+            ax.axvline(x=x_line, ymin=(y_line - 0.1) / 11.5, ymax=(y_line + 1.1) / 11.5,
                        color='gray', linestyle='--', linewidth=1)
 
-    # 人（左手）区
-    hand_region_x = person_x + 0.5
-    hand_region_top = lower_y + lower_h - 0.2
+    hand_region_x = person_x + margin_side
+    hand_region_top = lower_y + lower_h - margin_top - stick_len
+    max_cols_hand = 13
     hand_total = hand_person + hand_rem
     for i in range(hand_total):
         row = i // max_cols_hand
         col = i % max_cols_hand
-        x = hand_region_x + col * heap_x_step
-        y = hand_region_top - row * heap_row_height
+        x = hand_region_x + col * 0.25
+        y = hand_region_top - row * row_spacing
         color = 'purple' if i < hand_person else 'darkviolet'
-        ax.plot([x, x], [y, y+1.0], color=color, linewidth=4)  # 线宽加倍
+        ax.plot([x, x], [y, y + stick_len], color=color, linewidth=4)
 
-    # ---- 当前参与推演的蓍草根数 ----
-    ax.text(9.0, 0.2, f'当前参与推演的蓍草根数：{total_sticks} 根',
-            fontsize=21, ha='center', bbox=dict(facecolor='white', alpha=0.8))
+    if show_grid:
+        ax.text(left_box_x, box_y + box_h + 0.2, f'({left_box_x},{box_y})', fontsize=8, ha='left')
+        ax.text(right_box_x, box_y + box_h + 0.2, f'({right_box_x},{box_y})', fontsize=8, ha='left')
+        ax.text(person_x, lower_y - 0.3, f'({person_x},{lower_y})', fontsize=8, ha='left')
+        ax.text(taiji_x, lower_y - 0.3, f'({taiji_x},{lower_y})', fontsize=8, ha='left')
 
     return fig
 
 # ==================== 解卦工具 ====================
-YAO_NAMES = {6:"老阴⚋(变)",7:"少阳⚊",8:"少阴⚋",9:"老阳⚊(变)"}
+YAO_NAMES = {6: "老阴⚋(变)", 7: "少阳⚊", 8: "少阴⚋", 9: "老阳⚊(变)"}
+SIMPLE_YAO_NAMES = {6: "老阴⚋", 7: "少阳⚊", 8: "少阴⚋", 9: "老阳⚊"}
 
 def draw_yao(yao):
     return "━━━━━" if yao in (7, 9) else "━━ ━━"
 
 def interpret(yao_list):
-    orig_bin = ''.join('1' if y in (7,9) else '0' for y in yao_list)
-    changed_bin = ''.join('1' if y==6 else ('0' if y==9 else '1' if y==7 else '0') for y in yao_list)
-    orig = HEXAGRAM_DATA.get(orig_bin, ("未知卦",""))
-    changed = HEXAGRAM_DATA.get(changed_bin, ("未知卦",""))
-    pos = [i+1 for i,y in enumerate(yao_list) if y in (6,9)]
-    lines = [draw_yao(y) + (f"  ← 第{i+1}爻变" if y in (6,9) else "") for i,y in enumerate(yao_list)]
+    orig_bin = ''.join('1' if y in (7, 9) else '0' for y in yao_list)
+    changed_bin = ''.join('1' if y == 6 else ('0' if y == 9 else '1' if y == 7 else '0') for y in yao_list)
+    orig = HEXAGRAM_DATA.get(orig_bin, ("未知卦", ""))
+    changed = HEXAGRAM_DATA.get(changed_bin, ("未知卦", ""))
+    pos = [i + 1 for i, y in enumerate(yao_list) if y in (6, 9)]
+    lines = [draw_yao(y) + (f"  ← 第{i+1}爻变" if y in (6, 9) else "") for i, y in enumerate(yao_list)]
     lines.reverse()
     return "\n".join(lines), orig, changed, pos
 
@@ -339,7 +409,7 @@ def call_deepseek(prompt, api_key):
     except Exception as e:
         return f"请求异常：{e}"
 
-# ==================== 状态管理与推进逻辑 ====================
+# ==================== 状态管理 ====================
 def advance_phase():
     phase = st.session_state.app_phase
     if phase == "preparation":
@@ -354,7 +424,7 @@ def advance_phase():
         st.session_state.app_phase = "stepB"
     elif phase == "stepB":
         sticks = st.session_state.total_sticks
-        L = random.randint(1, sticks-1)
+        L = random.randint(1, sticks - 1)
         R = sticks - L
         st.session_state.left = L
         st.session_state.right = R
@@ -372,7 +442,8 @@ def advance_phase():
     elif phase == "stepD_rem":
         left = st.session_state.left
         rem = left % 4
-        if rem == 0: rem = 4
+        if rem == 0:
+            rem = 4
         st.session_state.left_rem = rem
         st.session_state.hand_rem += rem
         st.session_state.app_phase = "stepE_group"
@@ -381,7 +452,8 @@ def advance_phase():
     elif phase == "stepE_rem":
         right = st.session_state.right
         rem = right % 4
-        if rem == 0: rem = 4
+        if rem == 0:
+            rem = 4
         st.session_state.right_rem = rem
         st.session_state.hand_rem += rem
         st.session_state.app_phase = "stepF"
@@ -423,14 +495,6 @@ def advance_phase():
             st.session_state.app_phase = "result"
 
 # ==================== 主程序 ====================
-with st.sidebar:
-    st.header("🤖 AI 解卦（可选）")
-    use_ai = st.checkbox("启用 AI 白话解卦")
-    deepseek_key = None
-    if use_ai:
-        deepseek_key = st.text_input("DeepSeek API Key", type="password")
-
-# 初始化 session_state
 if "app_phase" not in st.session_state:
     st.session_state.app_phase = "preparation"
     st.session_state.question = ""
@@ -449,28 +513,52 @@ if "app_phase" not in st.session_state:
 
 phase = st.session_state.app_phase
 
-# ==================== 紧凑布局标题 ====================
+# ==================== 相位特定 CSS ====================
+if phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "stepE_rem", "stepF", "stepI"]:
+    st.markdown("""
+    <style>
+        .stButton > button {
+            margin-top: -20px !important;
+            position: relative;
+            width: auto !important;
+            min-width: 260px;
+            margin-left: auto !important;
+            margin-right: auto !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .stButton > button::after {
+            content: "☯";
+            margin-left: 12px;
+            font-size: 1.4em;
+            color: #333;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+# ==================== 标题 ====================
 st.markdown("<h3 style='margin-top: 0.5rem; margin-bottom:0;'>🌿 周易蓍草占筮 · 古法亲手推演</h3>", unsafe_allow_html=True)
 
 if phase not in ["preparation", "question"]:
     question_display = st.session_state.question.strip() if st.session_state.question.strip() else "（尚未填写）"
     st.markdown(f"<p style='margin-top:0; margin-bottom:0;'><b>🧘 耐心虔诚。心中默念所求之事：{question_display}</b></p>", unsafe_allow_html=True)
 
-# 阶段0：准备仪式
+# ==================== 阶段0：准备仪式 ====================
 if phase == "preparation":
     st.markdown("## 🪷 仪式准备")
-    st.markdown("""
-    **请沐浴更衣、洗手静心，虔心端坐，诚心诚意。**  
-    确认已做好身心的准备后，再进入下一步写下心中所问之事。
-    """)
+    st.markdown("**请沐浴更衣、洗手静心，虔心端坐，诚心诚意。**")
+    st.markdown("确认已做好身心的准备后，再进入下一步写下心中所问之事。")
+    st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
     if st.button("🧘 我已准备好，开始默念所求"):
         advance_phase()
         st.rerun()
 
-# 阶段1：输入问题
+# ==================== 阶段1：输入问题 ====================
 elif phase == "question":
     st.markdown("## 🔮 静心凝神，写下心中所问")
-    question = st.text_area("所求之事", placeholder="例如：这次旅行是否顺利？")
+    question = st.text_area("所求之事", placeholder="例如：这次工作是否顺利？")
+    st.markdown("<div style='margin-top: 2em;'></div>", unsafe_allow_html=True)
     if st.button("✨ 心意已定，备蓍起卦"):
         if question.strip() == "":
             st.warning("请先填写所求之事。")
@@ -479,29 +567,43 @@ elif phase == "question":
             st.session_state.app_phase = "ready"
             st.rerun()
 
-# 阶段2：准备蓍草
+# ==================== 阶段2：准备蓍草 ====================
 elif phase == "ready":
     st.subheader("🪷 备蓍")
     st.info(f"心中默念：**{st.session_state.question}**")
     fig = draw_initial_bunch(50)
     show_fig(fig)
+    st.markdown("""
+    <style>
+        div[data-testid="stButton"] button {
+            margin-top: -160px !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
     if st.button("🌱 开始取太极"):
         advance_phase()
         st.rerun()
 
-# 阶段3：取太极
+# ==================== 阶段3：取太极 ====================
 elif phase == "stepA":
     st.subheader("☯️ 步骤 A：取太极")
     st.markdown("请从50根中取出 **1根** 放在桌面前方，代表太极、不易、坚强意志。")
     st.caption("图中红色蓍草为随机选中的太极。")
     fig = draw_initial_bunch(50, highlight_index=st.session_state.taiji_stick_index, title_text='取太极')
     show_fig(fig)
-    if st.button("☯️ 我已取出太极，意志坚定"):
+    st.markdown("""
+    <style>
+        div[data-testid="stButton"] button {
+            margin-top: -160px !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    if st.button("☯️ 我已取太极，意志坚定，开始推演"):
         advance_phase()
         st.rerun()
 
-# 阶段4：推演过程
-elif phase in ["stepB","stepC","stepD_group","stepD_rem","stepE_group","stepE_rem","stepF","stepI"]:
+# ==================== 阶段4：推演过程 ====================
+elif phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "stepE_rem", "stepF", "stepI"]:
     idx = st.session_state.yao_index
     ch = st.session_state.change_index
     sticks = st.session_state.total_sticks
@@ -525,35 +627,37 @@ elif phase in ["stepB","stepC","stepD_group","stepD_rem","stepE_group","stepE_re
     }
     btn_label, desc = prompts.get(phase, ("继续", ""))
 
-    st.markdown(f"<h3 style='margin-bottom:0;'>⚊ 第{idx+1}爻 · 第{ch}变</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='margin-bottom:0;'>第{idx+1}爻 · 第{ch}变</h3>", unsafe_allow_html=True)
     st.markdown(f"<p style='margin-top:0; margin-bottom:0;'>{desc}</p>", unsafe_allow_html=True)
 
     show_l = (phase in ["stepD_group", "stepD_rem"])
     show_r = (phase in ["stepE_group", "stepE_rem"])
-    fig = draw_state(idx, ch, sticks, left, right, lr, rr, hp, hr, taiji, show_l, show_r)
+    fig = draw_state(idx, ch, sticks, left, right, lr, rr, hp, hr, taiji, show_l, show_r,
+                     show_grid=debug_grid)
     show_fig(fig)
 
-    if phase == "stepI":
-        groups = sticks // 4
-        yao_num = groups
-        yao_desc = YAO_NAMES.get(yao_num, "未知")
-        st.info(f"**当前剩余蓍草：{sticks} 根**  \n"
-                f"**4根一组，可得：{groups} 堆**  \n"
-                f"**此爻为：{yao_desc}**")
+    # ---- 已得之爻：使用纯 Markdown 列表，无任何 div/class 标签 ----
+    yao_results = st.session_state.yao_results
+    chinese_nums = ["一", "二", "三", "四", "五", "六"]
+    # 反向遍历：最新在上，最旧在下（自下而上）
+    md_lines = []
+    for i in range(len(yao_results)-1, -1, -1):
+        label = f"第{chinese_nums[i]}爻"
+        value = SIMPLE_YAO_NAMES.get(yao_results[i], "未知")
+        md_lines.append(f"- {label}：{value}")
 
-    if st.button(btn_label):
-        advance_phase()
-        st.rerun()
+    yao_md = "\n".join(md_lines) if md_lines else "（暂无已得之爻）"
 
-    if len(st.session_state.yao_results) > 0:
-        yao_results = st.session_state.yao_results
-        lines = []
-        for i in range(len(yao_results)-1, -1, -1):
-            lines.append(f"{i} {YAO_NAMES[yao_results[i]]}")
-        st.markdown("**已得之爻（自下而上）：**")
-        st.markdown("<br>".join(lines), unsafe_allow_html=True)
+    # ---- 使用两列布局，左侧按钮，右侧显示纯文本 ----
+    col1, col2 = st.columns([1, 1.5], gap="large")
+    with col1:
+        if st.button(btn_label, key=f"btn_{phase}_{idx}_{ch}"):
+            advance_phase()
+            st.rerun()
+    with col2:
+        st.markdown(yao_md)
 
-# 阶段5：结果展示
+# ==================== 阶段5：结果展示 ====================
 elif phase == "result":
     yao_list = st.session_state.yao_results
     if len(yao_list) < 6:
@@ -563,9 +667,9 @@ elif phase == "result":
     st.markdown("### 📜 推演所得六爻（自下而上）")
     yao_details = []
     for i, y in enumerate(yao_list):
-        pos_name = ["初爻","二爻","三爻","四爻","五爻","上爻"][i]
-        yin_yang = "阳" if y in (7,9) else "阴"
-        change = "变" if y in (6,9) else "不变"
+        pos_name = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"][i]
+        yin_yang = "阳" if y in (7, 9) else "阴"
+        change = "变" if y in (6, 9) else "不变"
         yao_details.append(f"**{pos_name}**：{YAO_NAMES[y]}（{yin_yang}，{change}）")
     for line in reversed(yao_details):
         st.markdown(line)
@@ -582,11 +686,11 @@ elif phase == "result":
 
     if pos:
         st.markdown("### 之卦（变卦）")
-        changed_lines = [draw_yao(9 if y==6 else (6 if y==9 else y)) for y in reversed(yao_list)]
+        changed_lines = [draw_yao(9 if y == 6 else (6 if y == 9 else y)) for y in reversed(yao_list)]
         st.code("\n".join(changed_lines), language="")
         st.markdown(f"**{changed[0]}**：{changed[1]}")
-        st.write(f"变爻位置（自下而上）：第 {', '.join(map(str,pos))} 爻")
-        if len(pos)==1:
+        st.write(f"变爻位置（自下而上）：第 {', '.join(map(str, pos))} 爻")
+        if len(pos) == 1:
             st.info("一爻变，以本卦变爻爻辞为主。")
         else:
             st.info("多爻变，以本卦卦辞为主，兼看之卦卦辞。")
@@ -603,7 +707,8 @@ elif phase == "result":
         st.subheader("🤖 AI 解读")
         st.write(ai_reply)
 
-    if st.button("🔄 重新占卜"):
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-        st.rerun()
+    st.markdown("---")
+    st.markdown(
+        "📌 **如需详细解卦，请联系博主，微信号码：AlexanderXG**  \n"
+        "（解卦之前自愿支付诚意金。）"
+    )
