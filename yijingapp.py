@@ -33,6 +33,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# ==================== 蓍草长度对应像素 ====================
+# 用于按钮/方框位置的精确移动
+STICK_LEN_PX = 35
+
 # ==================== 侧边栏 ====================
 with st.sidebar:
     st.header("🤖 AI 解卦（可选）")
@@ -585,7 +589,7 @@ if phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "stepE
             display: none !important;
         }
         .right-content {
-            transform: translate(-140px, -70px);
+            transform: translate(-140px, -105px);
         }
         .complete-content {
             transform: translate(-140px, -70px);
@@ -653,7 +657,7 @@ elif phase == "ready":
     st.markdown("""
     <style>
         div[data-testid="stButton"] button {
-            margin-top: -160px !important;
+            margin-top: -90px !important;
         }
         .stButton > button {
             font-size: calc(0.75 * var(--btn-font-size)) !important;
@@ -675,7 +679,7 @@ elif phase == "stepA":
     st.markdown("""
     <style>
         div[data-testid="stButton"] button {
-            margin-top: -160px !important;
+            margin-top: -90px !important;
         }
         .stButton > button {
             font-size: calc(0.75 * var(--btn-font-size)) !important;
@@ -744,7 +748,12 @@ elif phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "ste
 
     col1, col2 = st.columns([1, 1], gap="large")
     with col1:
-        st.markdown(f"<div style='height: {phase_offset}px;'></div>", unsafe_allow_html=True)
+        # “将蓍草随机分为左右两堆（分天地）”按钮向下移动1倍蓍草长度
+        if phase == "stepB":
+            button_spacer_height = phase_offset + STICK_LEN_PX
+        else:
+            button_spacer_height = phase_offset
+        st.markdown(f"<div style='height: {button_spacer_height}px;'></div>", unsafe_allow_html=True)
         if st.button(full_label, key=f"btn_{phase}_{idx}_{ch}"):
             if all_complete:
                 if show_detailed:
