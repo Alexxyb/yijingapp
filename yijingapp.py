@@ -34,8 +34,7 @@ st.set_page_config(
 )
 
 # ==================== 蓍草长度对应像素 ====================
-# 用于按钮/方框位置的精确移动
-STICK_LEN_PX = 35
+STICK_LEN_PX = 35  # 1倍蓍草长度 ≈ 35px
 
 # ==================== 侧边栏 ====================
 with st.sidebar:
@@ -65,10 +64,10 @@ with st.sidebar:
             "stepB": -20,
             "stepC": -20,
             "stepD_group": -20,
-            "stepD_rem": -40,
+            "stepD_rem": -20,
             "stepE_group": -20,
-            "stepE_rem": -40,
-            "stepF": -40,
+            "stepE_rem": -20,
+            "stepF": -20,
             "stepI": -20
         }
     phase_options = ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "stepE_rem", "stepF", "stepI"]
@@ -546,16 +545,19 @@ if "app_phase" not in st.session_state:
 
 phase = st.session_state.app_phase
 
-# ==================== 相位特定 CSS（推演阶段按钮放大加粗，整体上移1.5倍） ====================
+# ==================== 推演阶段按钮动态 CSS ====================
 if phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "stepE_rem", "stepF", "stepI"]:
-    st.markdown("""
+    phase_offset = st.session_state.phase_offsets.get(phase, -20)
+    # 按钮上移量 = 基础偏移 -52.5px（使人框下边缘下方约0.5倍蓍草长度） + 用户微调
+    button_translate_y = -52.5 + phase_offset
+    st.markdown(f"""
     <style>
-        .stButton {
+        .stButton {{
             height: 100%;
             display: flex;
             align-items: stretch;
-        }
-        .stButton > button {
+        }}
+        .stButton > button {{
             height: auto !important;
             width: var(--btn-width);
             font-size: 24px !important;
@@ -572,25 +574,28 @@ if phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "stepE
             display: flex;
             align-items: center;
             justify-content: center;
-            transform: translate(0px, -70px) !important;
+            transform: translate(0px, {button_translate_y}px) !important;
             white-space: pre-wrap;
             overflow: visible !important;
             line-height: 2;
             flex-direction: column;
-        }
-        .stButton > button:hover {
+        }}
+        .stButton > button:hover {{
             background-color: rgba(255, 255, 255, 0.25);
             border: 2px solid rgba(0, 0, 0, 0.6);
             color: rgba(0, 0, 0, 1);
-        }
+        }}
         .stButton > button::before,
-        .stButton > button::after {
+        .stButton > button::after {{
             content: none !important;
             display: none !important;
-        }
-        .yao-result-box {
-            margin-top: -60px;
-        }
+        }}
+        .yao-result-box {{
+            margin-top: 17.5px;  /* 0.5倍蓍草长度 */
+        }}
+        .yao-detail-box {{
+            margin-top: 17.5px;  /* 0.5倍蓍草长度 */
+        }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -701,7 +706,6 @@ elif phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "ste
     all_complete = st.session_state.all_complete
     show_detailed = st.session_state.show_detailed_result
 
-    # 定义每个阶段的说明文字和操作名
     phase_info = {
         "stepB": ("将蓍草随机分为左右两堆（分天地）", "分二"),
         "stepC": ("从右堆中取出1根挂于左手", "挂一"),
@@ -713,7 +717,6 @@ elif phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "ste
         "stepI": ("三次推演完成，请查看得爻结果", "得爻"),
     }
 
-    # 按钮文本逻辑
     if all_complete:
         if show_detailed:
             btn_label = "☯️ 查看卦象"
@@ -740,35 +743,7 @@ elif phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "ste
     yao_results = st.session_state.yao_results
     chinese_nums = ["一", "二", "三", "四", "五", "六"]
 
-    phase_offset = st.session_state.phase_offsets.get(phase, -20)
-
-    # 特殊处理 stepI 且未完成时的按钮位置和间距
-    is_stepI_not_complete = (phase == "stepI" and not all_complete)
-    if is_stepI_not_complete:
-        # 覆盖按钮 CSS：取消上移，设置合适的上边距，使按钮与“人（左手）”框下边缘距离约0.5倍蓍草长度
-        st.markdown("""
-        <style>
-            .stButton > button {
-                transform: none !important;
-                margin-top: 94px !important;  /* 计算值：图形底部到人框下边缘约76px + 0.5*35=17.5px */
-            }
-            .yao-result-box {
-                margin-top: 17.5px !important;
-            }
-            .yao-detail-box {
-                margin-top: 17.5px !important;
-                transform: none !important;
-            }
-        </style>
-        """, unsafe_allow_html=True)
-        button_spacer_height = 0
-    else:
-        button_spacer_height = phase_offset + (STICK_LEN_PX if phase == "stepB" else 0)
-
-    # 按钮前 spacer
-    st.markdown(f"<div style='height: {button_spacer_height}px;'></div>", unsafe_allow_html=True)
-
-    # 操作按钮
+    # 操作按钮（不再使用额外 spacer，位置由 CSS transform 控制）
     if st.button(full_label, key=f"btn_{phase}_{idx}_{ch}"):
         if all_complete:
             if show_detailed:
@@ -781,32 +756,28 @@ elif phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "ste
             advance_phase()
             st.rerun()
 
-    # 所得之爻方框（按钮下方，左对齐）
+    # 所得之爻方框（按钮下方，左对齐，间距 0.5 倍蓍草长度）
     lines = []
     for i in range(len(yao_results)-1, -1, -1):
         label = f"第{chinese_nums[i]}爻"
         value = SIMPLE_YAO_NAMES.get(yao_results[i], "未知")
         lines.append(f"{label}：{value}")
     yao_text = "☯️ 所得之爻<br>" + "<br>".join(lines) if lines else "（暂无已得之爻）"
-    # 动态设置 margin-top
-    yao_box_margin_top = "17.5px" if is_stepI_not_complete else "-60px"
     st.markdown(f'''
-    <div class="yao-result-box" style="width: fit-content; margin-left: 0; margin-right: auto; text-align: left; border: 2px solid #555; border-radius: 8px; padding: 8px 12px; min-height: 200px; display: flex; flex-direction: column; justify-content: center; margin-top: {yao_box_margin_top};">
+    <div class="yao-result-box" style="width: fit-content; margin-left: 0; margin-right: auto; text-align: left; border: 2px solid #555; border-radius: 8px; padding: 8px 12px; min-height: 200px; display: flex; flex-direction: column; justify-content: center;">
         {yao_text}
     </div>
     ''', unsafe_allow_html=True)
 
-    # 得爻详情显示（带方框）- 仅当 stepI 且未完成时显示
-    if is_stepI_not_complete:
+    # 得爻详情显示（仅 stepI 且未完成时显示）
+    if phase == "stepI" and not all_complete:
         left_groups = left // 4
         right_groups = right // 4
         total_groups = left_groups + right_groups
         yin_yang = "阳" if total_groups % 2 == 1 else "阴"
         yao_name = SIMPLE_YAO_NAMES.get(total_groups, "未知")
-        # 动态设置样式
-        detail_style = "margin-top: 17.5px; margin-left: 0; margin-right: auto; width: fit-content; text-align: left; border: 2px solid #555; border-radius: 8px; padding: 12px 16px; transform: none;"
         st.markdown(f"""
-        <div class="yao-detail-box" style='{detail_style}'>
+        <div class="yao-detail-box" style="width: fit-content; margin-left: 0; margin-right: auto; text-align: left; border: 2px solid #555; border-radius: 8px; padding: 12px 16px;">
         ☯  得爻：<br>
         左堆（天）：{left} 根，{left_groups} 组（每组4根）。<br>
         右堆（地）：{right} 根，{right_groups} 组（每组4根）。<br>
