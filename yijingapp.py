@@ -61,18 +61,18 @@ with st.sidebar:
     st.subheader("🎯 各阶段按钮位置独立微调")
     if "phase_offsets" not in st.session_state:
         st.session_state.phase_offsets = {
-            "stepB": -20,
-            "stepC": -20,
-            "stepD_group": -20,
-            "stepD_rem": -20,
-            "stepE_group": -20,
-            "stepE_rem": -20,
-            "stepF": -20,
-            "stepI": -20
+            "stepB": 0,
+            "stepC": 0,
+            "stepD_group": 0,
+            "stepD_rem": 0,
+            "stepE_group": 0,
+            "stepE_rem": 0,
+            "stepF": 0,
+            "stepI": 0
         }
     phase_options = ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "stepE_rem", "stepF", "stepI"]
     phase_to_adjust = st.selectbox("选择阶段", phase_options)
-    current_offset = st.session_state.phase_offsets.get(phase_to_adjust, -20)
+    current_offset = st.session_state.phase_offsets.get(phase_to_adjust, 0)
     new_offset = st.slider("该阶段按钮上偏移 (px)", -100, 100, current_offset)
     st.session_state.phase_offsets[phase_to_adjust] = new_offset
 
@@ -547,9 +547,9 @@ phase = st.session_state.app_phase
 
 # ==================== 推演阶段按钮动态 CSS ====================
 if phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "stepE_rem", "stepF", "stepI"]:
-    phase_offset = st.session_state.phase_offsets.get(phase, -20)
-    # 按钮上移量 = 基础偏移 -52.5px（使人框下边缘下方约0.5倍蓍草长度） + 用户微调
-    button_translate_y = -52.5 + phase_offset
+    phase_offset = st.session_state.phase_offsets.get(phase, 0)
+    # 基础偏移改为 0（原为 -52.5），按钮不再上移，整体下移
+    button_translate_y = 0 + phase_offset  # 用户可通过滑块微调
     st.markdown(f"""
     <style>
         .stButton {{
@@ -591,10 +591,10 @@ if phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "stepE
             display: none !important;
         }}
         .yao-result-box {{
-            margin-top: 17.5px;  /* 0.5倍蓍草长度 */
+            margin-top: 17.5px;  /* 保持与按钮的 0.5 倍间距 */
         }}
         .yao-detail-box {{
-            margin-top: 17.5px;  /* 0.5倍蓍草长度 */
+            margin-top: 17.5px;  /* 保持与上方框的 0.5 倍间距 */
         }}
     </style>
     """, unsafe_allow_html=True)
@@ -743,7 +743,7 @@ elif phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "ste
     yao_results = st.session_state.yao_results
     chinese_nums = ["一", "二", "三", "四", "五", "六"]
 
-    # 操作按钮（不再使用额外 spacer，位置由 CSS transform 控制）
+    # 操作按钮（位置由 CSS transform 控制）
     if st.button(full_label, key=f"btn_{phase}_{idx}_{ch}"):
         if all_complete:
             if show_detailed:
@@ -756,7 +756,7 @@ elif phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "ste
             advance_phase()
             st.rerun()
 
-    # 所得之爻方框（按钮下方，左对齐，间距 0.5 倍蓍草长度）
+    # 所得之爻方框（按钮下方，间距 0.5 倍）
     lines = []
     for i in range(len(yao_results)-1, -1, -1):
         label = f"第{chinese_nums[i]}爻"
