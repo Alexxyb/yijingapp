@@ -548,8 +548,9 @@ phase = st.session_state.app_phase
 # ==================== 推演阶段按钮动态 CSS ====================
 if phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "stepE_rem", "stepF", "stepI"]:
     phase_offset = st.session_state.phase_offsets.get(phase, 0)
-    # 按钮从当前上移4倍（-140px）向下移动1.5倍（+52.5px），变为上移2.5倍，即 -87.5px
-    button_translate_y = -87.5 + phase_offset
+    # 按钮向下移动 2.5 倍蓍草长度，相对于上一轮（向上4倍）下移87.5px
+    # 最终位置：-140 + 87.5 = -52.5px
+    button_translate_y = -52.5 + phase_offset
     st.markdown(f"""
     <style>
         .stButton {{
@@ -590,7 +591,7 @@ if phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "stepE
             content: none !important;
             display: none !important;
         }}
-        /* 保持其他框位置不变（向上2倍和2.5倍） */
+        /* 保持附件中的其他框位置不变 */
         .yao-result-box {{
             margin-top: -52.5px !important;
         }}
@@ -757,7 +758,7 @@ elif phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "ste
             advance_phase()
             st.rerun()
 
-    # 所得之爻方框（向上2倍偏移）
+    # 所得之爻方框（沿用附件中的向上2倍偏移）
     lines = []
     for i in range(len(yao_results)-1, -1, -1):
         label = f"第{chinese_nums[i]}爻"
@@ -770,7 +771,7 @@ elif phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "ste
     </div>
     ''', unsafe_allow_html=True)
 
-    # 得爻详情显示（仅 stepI 且未完成时显示，向上2.5倍偏移）
+    # 得爻详情显示（仅 stepI 且未完成时显示，沿用附件中的向上2.5倍偏移）
     if phase == "stepI" and not all_complete:
         left_groups = left // 4
         right_groups = right // 4
