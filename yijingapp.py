@@ -546,7 +546,7 @@ if "app_phase" not in st.session_state:
 
 phase = st.session_state.app_phase
 
-# ==================== 相位特定 CSS（推演阶段按钮放大加粗，整体上移1.5倍，右侧框左移5倍） ====================
+# ==================== 相位特定 CSS（推演阶段按钮放大加粗，整体上移1.5倍） ====================
 if phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "stepE_rem", "stepF", "stepI"]:
     st.markdown("""
     <style>
@@ -724,7 +724,7 @@ elif phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "ste
         desc_text, op_name = phase_info.get(phase, ("", ""))
         full_label = (
             f"{desc_text}\n"
-            f"☯️  {op_name}  ☯️\n\n"
+            f"☯️  {op_name}  ☯️\n"
             f"心中默念所求之事\n"
             f"请虔心点按此框任意位置卜卦"
         )
@@ -742,11 +742,30 @@ elif phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "ste
 
     phase_offset = st.session_state.phase_offsets.get(phase, -20)
 
-    # 按钮前 spacer（stepB 额外向下移动1倍蓍草长度）
-    if phase == "stepB":
-        button_spacer_height = phase_offset + STICK_LEN_PX
+    # 特殊处理 stepI 且未完成时的按钮位置和间距
+    is_stepI_not_complete = (phase == "stepI" and not all_complete)
+    if is_stepI_not_complete:
+        # 覆盖按钮 CSS：取消上移，设置合适的上边距，使按钮与“人（左手）”框下边缘距离约0.5倍蓍草长度
+        st.markdown("""
+        <style>
+            .stButton > button {
+                transform: none !important;
+                margin-top: 94px !important;  /* 计算值：图形底部到人框下边缘约76px + 0.5*35=17.5px */
+            }
+            .yao-result-box {
+                margin-top: 17.5px !important;
+            }
+            .yao-detail-box {
+                margin-top: 17.5px !important;
+                transform: none !important;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+        button_spacer_height = 0
     else:
-        button_spacer_height = phase_offset
+        button_spacer_height = phase_offset + (STICK_LEN_PX if phase == "stepB" else 0)
+
+    # 按钮前 spacer
     st.markdown(f"<div style='height: {button_spacer_height}px;'></div>", unsafe_allow_html=True)
 
     # 操作按钮
@@ -769,21 +788,25 @@ elif phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "ste
         value = SIMPLE_YAO_NAMES.get(yao_results[i], "未知")
         lines.append(f"{label}：{value}")
     yao_text = "☯️ 所得之爻<br>" + "<br>".join(lines) if lines else "（暂无已得之爻）"
+    # 动态设置 margin-top
+    yao_box_margin_top = "17.5px" if is_stepI_not_complete else "-60px"
     st.markdown(f'''
-    <div class="yao-result-box" style="width: fit-content; margin-left: 0; margin-right: auto; text-align: left; border: 2px solid #555; border-radius: 8px; padding: 8px 12px; min-height: 200px; display: flex; flex-direction: column; justify-content: center; margin-top: -60px;">
+    <div class="yao-result-box" style="width: fit-content; margin-left: 0; margin-right: auto; text-align: left; border: 2px solid #555; border-radius: 8px; padding: 8px 12px; min-height: 200px; display: flex; flex-direction: column; justify-content: center; margin-top: {yao_box_margin_top};">
         {yao_text}
     </div>
     ''', unsafe_allow_html=True)
 
-    # 得爻详情显示（带方框）- 仅当未完成时显示，左侧对齐人（左手）框
-    if phase == "stepI" and not all_complete:
+    # 得爻详情显示（带方框）- 仅当 stepI 且未完成时显示
+    if is_stepI_not_complete:
         left_groups = left // 4
         right_groups = right // 4
         total_groups = left_groups + right_groups
         yin_yang = "阳" if total_groups % 2 == 1 else "阴"
         yao_name = SIMPLE_YAO_NAMES.get(total_groups, "未知")
+        # 动态设置样式
+        detail_style = "margin-top: 17.5px; margin-left: 0; margin-right: auto; width: fit-content; text-align: left; border: 2px solid #555; border-radius: 8px; padding: 12px 16px; transform: none;"
         st.markdown(f"""
-        <div style='margin-top: 1em; margin-left: 0; margin-right: auto; width: fit-content; text-align: left; transform: translate(0px, -80px); border: 2px solid #555; border-radius: 8px; padding: 12px 16px;'>
+        <div class="yao-detail-box" style='{detail_style}'>
         ☯  得爻：<br>
         左堆（天）：{left} 根，{left_groups} 组（每组4根）。<br>
         右堆（地）：{right} 根，{right_groups} 组（每组4根）。<br>
