@@ -588,12 +588,8 @@ if phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "stepE
             content: none !important;
             display: none !important;
         }
-        .right-content {
-            transform: translate(-140px, -105px);
-        }
-        .complete-content {
-            transform: translate(-140px, -70px);
-            text-align: left;
+        .yao-result-box {
+            margin-top: -60px;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -746,39 +742,38 @@ elif phase in ["stepB", "stepC", "stepD_group", "stepD_rem", "stepE_group", "ste
 
     phase_offset = st.session_state.phase_offsets.get(phase, -20)
 
-    col1, col2 = st.columns([1, 1], gap="large")
-    with col1:
-        # “将蓍草随机分为左右两堆（分天地）”按钮向下移动1倍蓍草长度
-        if phase == "stepB":
-            button_spacer_height = phase_offset + STICK_LEN_PX
-        else:
-            button_spacer_height = phase_offset
-        st.markdown(f"<div style='height: {button_spacer_height}px;'></div>", unsafe_allow_html=True)
-        if st.button(full_label, key=f"btn_{phase}_{idx}_{ch}"):
-            if all_complete:
-                if show_detailed:
-                    st.session_state.app_phase = "result"
-                    st.rerun()
-                else:
-                    st.session_state.show_detailed_result = True
-                    st.rerun()
-            else:
-                advance_phase()
+    # 按钮前 spacer（stepB 额外向下移动1倍蓍草长度）
+    if phase == "stepB":
+        button_spacer_height = phase_offset + STICK_LEN_PX
+    else:
+        button_spacer_height = phase_offset
+    st.markdown(f"<div style='height: {button_spacer_height}px;'></div>", unsafe_allow_html=True)
+
+    # 操作按钮
+    if st.button(full_label, key=f"btn_{phase}_{idx}_{ch}"):
+        if all_complete:
+            if show_detailed:
+                st.session_state.app_phase = "result"
                 st.rerun()
-    with col2:
-        st.markdown(f"<div style='height: {phase_offset}px;'></div>", unsafe_allow_html=True)
-        # 统一显示已得之爻（按第六→第一的顺序）
-        lines = []
-        for i in range(len(yao_results)-1, -1, -1):
-            label = f"第{chinese_nums[i]}爻"
-            value = SIMPLE_YAO_NAMES.get(yao_results[i], "未知")
-            lines.append(f"{label}：{value}")
-        yao_text = "☯️ 所得之爻<br>" + "<br>".join(lines) if lines else "（暂无已得之爻）"
-        st.markdown(f'''
-        <div class="right-content" style="width: fit-content; margin-left: auto; margin-right: 0; text-align: left; border: 2px solid #555; border-radius: 8px; padding: 8px 12px; min-height: 200px; display: flex; flex-direction: column; justify-content: center;">
-            {yao_text}
-        </div>
-        ''', unsafe_allow_html=True)
+            else:
+                st.session_state.show_detailed_result = True
+                st.rerun()
+        else:
+            advance_phase()
+            st.rerun()
+
+    # 所得之爻方框（按钮下方，左对齐）
+    lines = []
+    for i in range(len(yao_results)-1, -1, -1):
+        label = f"第{chinese_nums[i]}爻"
+        value = SIMPLE_YAO_NAMES.get(yao_results[i], "未知")
+        lines.append(f"{label}：{value}")
+    yao_text = "☯️ 所得之爻<br>" + "<br>".join(lines) if lines else "（暂无已得之爻）"
+    st.markdown(f'''
+    <div class="yao-result-box" style="width: fit-content; margin-left: 0; margin-right: auto; text-align: left; border: 2px solid #555; border-radius: 8px; padding: 8px 12px; min-height: 200px; display: flex; flex-direction: column; justify-content: center; margin-top: -60px;">
+        {yao_text}
+    </div>
+    ''', unsafe_allow_html=True)
 
     # 得爻详情显示（带方框）- 仅当未完成时显示，左侧对齐人（左手）框
     if phase == "stepI" and not all_complete:
